@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Side-Scrolling Helicopter Shooter - Enhanced</title>
+    <title>Side-Scrolling Helicopter Shooter - 10 Levels</title>
     <style>
         * {
             margin: 0;
@@ -212,6 +212,34 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.4);
         }
 
+        .level-select {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .level-btn {
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #444 0%, #666 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .level-btn:hover {
+            background: linear-gradient(135deg, #555 0%, #777 100%);
+            transform: scale(1.05);
+        }
+
+        .level-btn.completed {
+            background: linear-gradient(135deg, #00aa00 0%, #00dd00 100%);
+        }
+
         .controls-info {
             margin-top: 40px;
             text-align: center;
@@ -234,6 +262,10 @@
             
             .game-subtitle {
                 font-size: 16px;
+            }
+            
+            .level-select {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
     </style>
@@ -268,7 +300,7 @@
                         <div class="boost-fill" id="boostFill" style="width: 100%"></div>
                     </div>
                 </div>
-                <div id="ammo">Ammo: 999</div>
+                <div id="level">Level: 1</div>
             </div>
         </div>
 
@@ -278,15 +310,28 @@
             </div>
             <div class="control-group action-buttons">
                 <button class="action-btn" id="fireBtn">FIRE</button>
-                <button class="action-btn"
-id="weaponBtn">WEAPON</button>
+                <button class="action-btn" id="weaponBtn">WEAPON</button>
                 <button class="action-btn" id="shieldBtn">SHIELD</button>
             </div>
         </div>
 
         <div id="startScreen">
             <h1 class="game-title">🚁 HELICOPTER SHOOTER</h1>
-            <p class="game-subtitle">Enhanced Side-Scrolling Action</p>
+            <p class="game-subtitle">10 Levels of Increasing Difficulty</p>
+            
+            <div class="level-select" id="levelSelect">
+                <button class="level-btn" data-level="0">1. Base Camp</button>
+                <button class="level-btn" data-level="1">2. Desert</button>
+                <button class="level-btn" data-level="2">3. Volcano</button>
+                <button class="level-btn" data-level="3">4. Arctic</button>
+                <button class="level-btn" data-level="4">5. Cyber City</button>
+                <button class="level-btn" data-level="5">6. Jungle</button>
+                <button class="level-btn" data-level="6">7. Ocean</button>
+                <button class="level-btn" data-level="7">8. Underground</button>
+                <button class="level-btn" data-level="8">9. Sky Fortress</button>
+                <button class="level-btn" data-level="9">10. Alien</button>
+            </div>
+            
             <div class="menu-buttons">
                 <button class="menu-btn" id="startBtn">START GAME</button>
                 <button class="menu-btn" id="endlessBtn">ENDLESS MODE</button>
@@ -304,12 +349,129 @@ id="weaponBtn">WEAPON</button>
         const ctx = canvas.getContext('2d');
         const startScreen = document.getElementById('startScreen');
         const mobileControls = document.getElementById('mobileControls');
+        const levelSelect = document.getElementById('levelSelect');
         
         // Game state
         let gameRunning = false;
         let score = 0;
-        let level = 1;
+        let currentLevel = 0;
         let endlessMode = false;
+        let completedLevels = new Set();
+        
+        // Level configurations
+        const levels = [
+            {
+                name: "Base Camp",
+                theme: "military",
+                difficulty: 1,
+                scrollSpeed: 120,
+                enemySpawnRate: 3.0,
+                enemyTypes: ["drone"],
+                backgroundColor: "#2a4a2a",
+                boss: false,
+                targetScore: 500
+            },
+            {
+                name: "Desert Warzone",
+                theme: "desert",
+                difficulty: 2,
+                scrollSpeed: 150,
+                enemySpawnRate: 2.5,
+                enemyTypes: ["drone", "tank"],
+                backgroundColor: "#cc9933",
+                boss: false,
+                targetScore: 1000
+            },
+            {
+                name: "Volcano Lava Run",
+                theme: "volcano",
+                difficulty: 3,
+                scrollSpeed: 180,
+                enemySpawnRate: 2.0,
+                enemyTypes: ["drone", "tank", "turret"],
+                backgroundColor: "#cc3333",
+                boss: true,
+                targetScore: 2000
+            },
+            {
+                name: "Arctic Storm",
+                theme: "arctic",
+                difficulty: 4,
+                scrollSpeed: 160,
+                enemySpawnRate: 1.8,
+                enemyTypes: ["drone", "tank", "turret", "icedrone"],
+                backgroundColor: "#b3d9ff",
+                boss: false,
+                targetScore: 2500
+            },
+            {
+                name: "Cyber City",
+                theme: "cyber",
+                difficulty: 5,
+                scrollSpeed: 200,
+                enemySpawnRate: 1.5,
+                enemyTypes: ["drone", "tank", "turret", "cyberdrone"],
+                backgroundColor: "#1a0033",
+                boss: true,
+                targetScore: 3500
+            },
+            {
+                name: "Jungle Ambush",
+                theme: "jungle",
+                difficulty: 6,
+                scrollSpeed: 140,
+                enemySpawnRate: 1.3,
+                enemyTypes: ["drone", "tank", "turret", "camodrone"],
+                backgroundColor: "#1a4d1a",
+                boss: false,
+                targetScore: 4000
+            },
+            {
+                name: "Ocean Battleships",
+                theme: "ocean",
+                difficulty: 7,
+                scrollSpeed: 170,
+                enemySpawnRate: 1.2,
+                enemyTypes: ["drone", "tank", "turret", "seadrone"],
+                backgroundColor: "#004d80",
+                boss: true,
+                targetScore: 5000
+            },
+            {
+                name: "Underground Bunker",
+                theme: "underground",
+                difficulty: 8,
+                scrollSpeed: 130,
+                enemySpawnRate: 1.0,
+                enemyTypes: ["drone", "tank", "turret", "bunkerdrone"],
+                backgroundColor: "#4d3300",
+                boss: false,
+                targetScore: 6000
+            },
+            {
+                name: "Sky Fortress",
+                theme: "sky",
+                difficulty: 9,
+                scrollSpeed: 220,
+                enemySpawnRate: 0.8,
+                enemyTypes: ["drone", "tank",
+"turret", "skydrone"],
+                backgroundColor: "#80b3ff",
+                boss: true,
+                targetScore: 8000
+            },
+            {
+                name: "Alien Mothership",
+                theme: "alien",
+                difficulty: 10,
+                scrollSpeed: 250,
+                enemySpawnRate: 0.5,
+                enemyTypes: ["drone", "tank", "turret", "aliendrone", "alienfighter"],
+                backgroundColor: "#4d0066",
+                boss: true,
+                targetScore: 10000
+            }
+        ];
         
         // Player state
         const player = {
@@ -339,6 +501,8 @@ id="weaponBtn">WEAPON</button>
         let powerUps = [];
         let particles = [];
         let explosions = [];
+        let hazards = [];
+        let currentLevelData = null;
         
         // Weapon configurations
         const weapons = {
@@ -349,12 +513,19 @@ id="weaponBtn">WEAPON</button>
             flamethrower: { damage: 5, speed: 6, cooldown: 30, color: '#ff00ff', spread: 3, count: 3 }
         };
         
-        // Enemy types
+        // Enemy types with enhanced stats for higher levels
         const enemyTypes = {
             drone: { health: 20, speed: 2, damage: 10, score: 100, color: '#888888', size: 30 },
             tank: { health: 50, speed: 1, damage: 20, score: 200, color: '#444444', size: 40 },
             turret: { health: 30, speed: 0, damage: 15, score: 150, color: '#666666', size: 35 },
-            boss: { health: 500, speed: 1.5, damage: 30, score: 1000, color: '#ff0000', size: 80 }
+            icedrone: { health: 40, speed: 2.5, damage: 18, score: 180, color: '#aaccff', size: 32 },
+            cyberdrone: { health: 60, speed: 3, damage: 25, score: 220, color: '#ff00ff', size: 35 },
+            camodrone: { health: 35, speed: 2.2, damage: 20, score: 190, color: '#33aa33', size: 30 },
+            seadrone: { health: 45, speed: 1.8, damage: 22, score: 200, color: '#0066cc', size: 33 },
+            bunkerdrone: { health: 55, speed: 1.5, damage: 28, score: 240, color: '#8b4513', size: 38 },
+            skydrone: { health: 50, speed: 3.5, damage: 24, score: 210, color: '#87ceeb', size: 34 },
+            aliendrone: { health: 70, speed: 2.8, damage: 35, score: 300, color: '#9400d3', size: 40 },
+            alienfighter: { health: 80, speed: 3.2, damage: 40, score: 350, color: '#ff1493', size: 42 }
         };
         
         // Power-up types
@@ -474,13 +645,21 @@ id="weaponBtn">WEAPON</button>
             updateUI();
         });
         
+        // Level selection
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const level = parseInt(e.target.dataset.level);
+                startLevel(level);
+            });
+        });
+        
         // Menu buttons
         document.getElementById('startBtn').addEventListener('click', () => {
-            startGame(false);
+            startLevel(0);
         });
         
         document.getElementById('endlessBtn').addEventListener('click', () => {
-            startGame(true);
+            startEndlessMode();
         });
         
         document.getElementById('closeBtn').addEventListener('click', () => {
@@ -488,11 +667,12 @@ id="weaponBtn">WEAPON</button>
         });
         
         // Game functions
-        function startGame(endless) {
-            endlessMode = endless;
+        function startLevel(levelIndex) {
+            currentLevel = levelIndex;
+            endlessMode = false;
+            currentLevelData = levels[levelIndex];
             gameRunning = true;
             score = 0;
-            level = 1;
             
             // Reset player
             player.health = player.maxHealth;
@@ -509,6 +689,53 @@ id="weaponBtn">WEAPON</button>
             powerUps = [];
             particles = [];
             explosions = [];
+            hazards = [];
+            
+            // Hide start screen
+            startScreen.style.display = 'none';
+            
+            // Show mobile controls if needed
+            if (window.innerWidth <= 768) {
+                mobileControls.style.display = 'block';
+            }
+            
+            updateUI();
+            gameLoop();
+        }
+        
+        function startEndlessMode() {
+            endlessMode = true;
+            currentLevel = 0;
+            currentLevelData = {
+                name: "Endless Mode",
+                theme: "mixed",
+                difficulty: 1,
+                scrollSpeed: 150,
+                enemySpawnRate: 2.0,
+                enemyTypes: ["drone", "tank", "turret"],
+                backgroundColor: "#333333",
+                boss: false,
+                targetScore: 1000
+            };
+            gameRunning = true;
+            score = 0;
+            
+            // Reset player
+            player.health = player.maxHealth;
+            player.shield = 0;
+            player.boost = 100;
+            player.weapon = 'minigun';
+            player.ammo = 999;
+            player.x = 100;
+            player.y = canvas.height / 2;
+            
+            // Clear game objects
+            bullets = [];
+            enemies = [];
+            powerUps = [];
+            particles = [];
+            explosions = [];
+            hazards = [];
             
             // Hide start screen
             startScreen.style.display = 'none';
@@ -708,14 +935,10 @@ id="weaponBtn">WEAPON</button>
         }
         
         function updateEnemies() {
-            // Spawn enemies
-            if (Math.random() < 0.02 + level * 0.005) {
-                const types = endlessMode ? 
-                    ['drone', 'tank', 'turret'] : 
-                    ['drone', 'tank'];
-                
-                const type = types[Math.floor(Math.random() * types.length)];
-                const enemyData = enemyTypes[type];
+            // Spawn enemies based on level
+            if (Math.random() < 0.02 + currentLevelData.difficulty * 0.005) {
+                const enemyType = currentLevelData.enemyTypes[Math.floor(Math.random() * currentLevelData.enemyTypes.length)];
+                const enemyData = enemyTypes[enemyType];
                 
                 enemies.push({
                     x: canvas.width + 50,
@@ -728,7 +951,7 @@ id="weaponBtn">WEAPON</button>
                     score: enemyData.score,
                     color: enemyData.color,
                     size: enemyData.size,
-                    type: type,
+                    type: enemyType,
                     shootCooldown: 0
                 });
             }
@@ -778,6 +1001,63 @@ id="weaponBtn">WEAPON</button>
                     enemies.splice(i, 1);
                 }
             }
+        }
+        
+        function updateHazards() {
+            // Spawn level-specific hazards
+            if (Math.random() < 0.01 * currentLevelData.difficulty) {
+                spawnHazard();
+            }
+            
+            // Update hazards
+            for (let i = hazards.length - 1; i >= 0; i--) {
+                const hazard = hazards[i];
+                hazard.x -= currentLevelData.scrollSpeed / 30;
+                
+                // Check collision with player
+                const distance = Math.sqrt(
+                    Math.pow(hazard.x - player.x, 2) + 
+                    Math.pow(hazard.y - player.y, 2)
+                );
+                
+                if (distance < hazard.size / 2 + 20) {
+                    takeDamage(hazard.damage);
+                    createExplosion(hazard.x, hazard.y, hazard.size);
+                    hazards.splice(i, 1);
+                }
+                
+                // Remove off-screen hazards
+                if (hazard.x < -50) {
+                    hazards.splice(i, 1);
+                }
+            }
+        }
+        
+        function spawnHazard() {
+            const hazardTypes = {
+                military: ['rock', 'barrel'],
+                desert: ['sandstorm', 'rock'],
+                volcano: ['lava', 'fireball'],
+                arctic: ['ice', 'blizzard'],
+                cyber: ['laser', 'electric'],
+                jungle: ['vine', 'poison'],
+                ocean: ['wave', 'torpedo'],
+                underground: ['rock', 'mine'],
+                sky: ['lightning', 'wind'],
+                alien: ['energy', 'blackhole']
+            };
+            
+            const themeHazards = hazardTypes[currentLevelData.theme] || ['rock'];
+            const hazardType = themeHazards[Math.floor(Math.random() * themeHazards.length)];
+            
+            hazards.push({
+                x: canvas.width + 50,
+                y: Math.random() * (canvas.height - 100) + 50,
+                size: 30 + Math.random() * 20,
+                damage: 10 + currentLevelData.difficulty * 2,
+                color: '#ff6600',
+                type: hazardType
+            });
         }
         
         function updatePowerUps() {
@@ -933,17 +1213,20 @@ id="weaponBtn">WEAPON</button>
         }
         
         function render() {
-            // Clear canvas
-            ctx.fillStyle = '#001122';
+            // Clear canvas with level-specific background
+            ctx.fillStyle = currentLevelData.backgroundColor || '#001122';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Draw background elements
-            ctx.fillStyle = '#003366';
-            for (let i = 0; i < 5; i++) {
-                const x = (i * 200 - (Date.now() / 50) % 1000) % canvas.width;
-                ctx.fillRect(x, 100, 150, 200);
-                ctx.fillRect(x + 75, 350, 100, 150);
-            }
+            // Draw background elements based on theme
+            drawBackground();
+            
+            // Draw hazards
+            hazards.forEach(hazard => {
+                ctx.fillStyle = hazard.color;
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(hazard.x - hazard.size/2, hazard.y - hazard.size/2, hazard.size, hazard.size);
+                ctx.globalAlpha = 1;
+            });
             
             // Draw particles
             particles.forEach(particle => {
@@ -1044,14 +1327,127 @@ id="weaponBtn">WEAPON</button>
             });
         }
         
+        function drawBackground() {
+            // Draw theme-specific background elements
+            switch (currentLevelData.theme) {
+                case 'military':
+                    ctx.fillStyle = '#003366';
+                    for (let i = 0; i < 5; i++) {
+                        const x = (i * 200 - (Date.now() / 50) % 1000) % canvas.width;
+                        ctx.fillRect(x, 100, 150, 200);
+                        ctx.fillRect(x + 75, 350, 100, 150);
+                    }
+                    break;
+                case 'desert':
+                    ctx.fillStyle = '#cc9933';
+                    for (let i = 0; i < 8; i++) {
+                        const x = (i * 150 - (Date.now() / 40) % 1200) % canvas.width;
+                        ctx.fillRect(x, 200, 100, 100);
+                    }
+                    break;
+                case 'volcano':
+                    ctx.fillStyle = '#cc3333';
+                    for (let i = 0; i < 6; i++) {
+                        const x = (i * 180 - (Date.now() / 45) % 1080) % canvas.width;
+                        ctx.fillRect(x, 150, 120, 150);
+                    }
+                    break;
+                case 'arctic':
+                    ctx.fillStyle = '#b3d9ff';
+                    for (let i = 0; i < 7; i++) {
+                        const x = (i * 160 - (Date.now() / 35) % 1120) % canvas.width;
+                        ctx.fillRect(x, 180, 130, 140);
+                    }
+                    break;
+                case 'cyber':
+                    ctx.fillStyle = '#1a0033';
+                    for (let i = 0; i < 9; i++) {
+                        const x = (i * 140 - (Date.now() / 30) % 1260) % canvas.width;
+                        ctx.fillRect(x, 120, 110, 160);
+                    }
+                    break;
+                case 'jungle':
+                    ctx.fillStyle = '#1a4d1a';
+                    for (let i = 0; i < 10; i++) {
+                        const x = (i * 130 - (Date.now() / 25) % 1300) % canvas.width;
+                        ctx.fillRect(x, 160, 100, 120);
+                    }
+                    break;
+                case 'ocean':
+                    ctx.fillStyle = '#004d80';
+                    for (let i = 0; i < 8; i++) {
+                        const x = (i * 170 - (Date.now() / 40) % 1360) % canvas.width;
+                        ctx.fillRect(x, 220, 140, 100);
+                    }
+                    break;
+                case 'underground':
+                    ctx.fillStyle = '#4d3300';
+                    for (let i = 0; i < 6; i++) {
+                        const x = (i * 190 - (Date.now() / 50) % 1140) % canvas.width;
+                        ctx.fillRect(x, 190, 110, 130);
+                    }
+                    break;
+                case 'sky':
+                    ctx.fillStyle = '#80b3ff';
+                    for (let i = 0; i < 7; i++) {
+                        const x = (i * 175 - (Date.now() / 35) % 1225) % canvas.width;
+                        ctx.fillRect(x, 140, 125, 145);
+                    }
+                    break;
+                case 'alien':
+                    ctx.fillStyle = '#4d0066';
+                    for (let i = 0; i < 8; i++) {
+                        const x = (i * 155 - (Date.now() / 30) % 1240) % canvas.width;
+                        ctx.fillRect(x, 170, 115, 135);
+                    }
+                    break;
+            }
+        }
+        
         function updateUI() {
             document.getElementById('score').textContent = `Score: ${score}`;
             document.getElementById('weapon').textContent = `Weapon: ${player.weapon.toUpperCase()}`;
+            document.getElementById('level').textContent = `Level: ${currentLevel + 1}`;
             document.getElementById('ammo').textContent = `Ammo: ${player.ammo}`;
             
             document.getElementById('healthFill').style.width = `${(player.health / player.maxHealth) * 100}%`;
             document.getElementById('shieldFill').style.width = `${player.shield}%`;
             document.getElementById('boostFill').style.width = `${player.boost}%`;
+        }
+        
+        function checkLevelComplete() {
+            if (!endlessMode && score >= currentLevelData.targetScore) {
+                // Level complete!
+                completedLevels.add(currentLevel);
+                updateLevelButtons();
+                
+                if (currentLevel < levels.length - 1) {
+                    // Move to next level
+                    currentLevel++;
+                    startLevel(currentLevel);
+                } else {
+                    // Game complete!
+                    gameComplete();
+                }
+            }
+        }
+        
+        function updateLevelButtons() {
+            document.querySelectorAll('.level-btn').forEach((btn, index) => {
+                if (completedLevels.has(index)) {
+                    btn.classList.add('completed');
+                }
+            });
+        }
+        
+        function gameComplete() {
+            gameRunning = false;
+            startScreen.style.display = 'flex';
+            mobileControls.style.display = 'none';
+            
+            // Update start screen with game complete info
+            document.querySelector('.game-title').textContent = '🎉 GAME COMPLETE!';
+            document.querySelector('.game-subtitle').textContent = `Final Score: ${score} - All Levels Completed!`;
         }
         
         function gameOver() {
@@ -1070,15 +1466,19 @@ id="weaponBtn">WEAPON</button>
             updatePlayer();
             updateBullets();
             updateEnemies();
+            updateHazards();
             updatePowerUps();
             updateParticles();
             render();
             
-            // Level progression
-            if (!endlessMode && score > level * 1000) {
-                level++;
-                // Level complete effect
-                createExplosion(canvas.width / 2, canvas.height / 2, 100);
+            // Check level completion
+            checkLevelComplete();
+            
+            // Endless mode difficulty scaling
+            if (endlessMode) {
+                currentLevelData.difficulty = Math.min(10, 1 + Math.floor(score / 2000));
+                currentLevelData.enemySpawnRate = Math.max(0.3, 2.0 - currentLevelData.difficulty * 0.2);
+                currentLevelData.scrollSpeed = Math.min(300, 150 + currentLevelData.difficulty * 15);
             }
             
             requestAnimationFrame(gameLoop);
@@ -1086,4 +1486,5 @@ id="weaponBtn">WEAPON</button>
         
         // Initialize
         updateUI();
+        updateLevelButtons();
     </script>
